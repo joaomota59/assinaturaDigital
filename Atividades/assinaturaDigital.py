@@ -29,7 +29,7 @@ def criptografiaHash(keyPair,mensagem):#Gera o hash da assinatura
     hash_.update(bytes(mensagem, encoding = 'utf-8'))#passa a mensagem para fazer o hash
     hashMensagem = hash_.digest() #transforma a mensagem em hash
     digitalSign = keyPair.sign(hashMensagem, '')#retorna o hash da assinatura digital(chave privada + mensagem)
-    return signature
+    return digitalSign
 
 def criptografia():#TELA 1 
     limpaTela()
