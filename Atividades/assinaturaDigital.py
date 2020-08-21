@@ -46,7 +46,7 @@ def criptografiaHash(keyPair,mensagem):#Gera o hash da assinatura digital
 
 def descriptografiaHash(pubKey,mensagem,assinatura):
     assinatura = binascii.unhexlify(assinatura)#transforma de hexadecimal para binascii
-    print(assinatura)
+    #print(assinatura)
     mensagem = bytes(mensagem, 'utf-8')#transforma a mensagem(string utf-8 para bytes)
     hash_ = SHA256.new(mensagem)
     verifier = PKCS115_SigScheme(pubKey)
