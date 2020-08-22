@@ -84,7 +84,11 @@ while 1 == 1:
 		msg = input("Digite a mensagem que deseja usar para a assinar: ")
 		privateKey, publicKey, message, assignatureGenerate = key(msg)
 	elif opt == 3:
-		print("Função em desenvolvimento...\n")
+		if assignatureGenerate == "":
+			print("Ainda não foi gerado uma assinatura da mensagem, utilize a opção 2 para iniciar a criação de uma")
+		else:
+			ass_ = binascii.hexlify(assignatureGenerate).decode('utf-8')
+			descriptografiaHash(publicKey, message, ass_)
 	elif opt == 0:
 		print("Tchau\n")
 		break
