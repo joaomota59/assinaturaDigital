@@ -15,9 +15,9 @@ def key(mensagem):#Gera a chave pública + chave privada + assinatura digital
     pubKey = keyPair.publickey()#Geração da chave pública
     
     privateKey = "Private key: " + f"(n={hex(keyPair.n)}, d={hex(keyPair.d)})"
-    publicKey = "Public key: " + f"(n={hex(keyPair.n)}, e={hex(keyPair.e)})"
+    #publicKey = "Public key: " + f"(n={hex(keyPair.n)}, e={hex(keyPair.e)})"
+    publicKey = "Chave Pública: "+repr(pubKey.exportKey().decode("utf-8")).replace('-----BEGIN PUBLIC KEY-----','').replace('-----END PUBLIC KEY-----','')
     message = mensagem
-
     # print(pubKey)
     return privateKey, publicKey, message, criptografiaHash(keyPair,mensagem)
     
@@ -28,8 +28,7 @@ def criptografiaHash(keyPair,mensagem):#Gera o hash da assinatura digital
     signature = signer.sign(hash_)#faz assinatura digital em binascii
     # print("\n")
     # print("Assinatura Digital:",binascii.hexlify(signature))#assinatura em hexadecimal
-    assignatureGenerate = binascii.hexlify(signature)
-    return signature #retorna a assinatura digital em binascii
+    return signature
 
 def descriptografiaHash(pubKey,mensagem,assinatura):
     assinatura = binascii.unhexlify(assinatura)#transforma de hexadecimal para binascii
@@ -75,7 +74,7 @@ while 1 == 1:
 		if assignatureGenerate == "":
 			print("Ainda não foi gerado uma assinatura da mensagem, utilize a opção 2 para iniciar a criação de uma")
 		else:
-			print(" - Assignature: " , binascii.hexlify(assignatureGenerate))
+			print(" - Assignature: " , binascii.hexlify(assignatureGenerate).decode('utf-8'))
 
 		if message == "":
 			print(" - Ainda não foi inserido uma mensagem para assinatura, utiliza a opção 2 para iniciar a criação de uma\n")
