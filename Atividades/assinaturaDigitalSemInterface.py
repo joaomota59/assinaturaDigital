@@ -16,10 +16,11 @@ def key(mensagem):#Gera a chave pública + chave privada + assinatura digital
     
     privateKey = "Private key: " + f"(n={hex(keyPair.n)}, d={hex(keyPair.d)})"
     #publicKey = "Public key: " + f"(n={hex(keyPair.n)}, e={hex(keyPair.e)})"
-    publicKey = "Chave Pública: "+repr(pubKey.exportKey().decode("utf-8")).replace('-----BEGIN PUBLIC KEY-----','').replace('-----END PUBLIC KEY-----','')
+    publicKey = repr(pubKey.exportKey().decode("utf-8")).replace('-----BEGIN PUBLIC KEY-----','').replace('-----END PUBLIC KEY-----','')
+    publickeyReal = keyPair.publickey()
     message = mensagem
     # print(pubKey)
-    return privateKey, publicKey, message, criptografiaHash(keyPair,mensagem)
+    return privateKey, publicKey, publickeyReal, message, criptografiaHash(keyPair,mensagem)
     
 def criptografiaHash(keyPair,mensagem):#Gera o hash da assinatura digital
     mensagem = bytes(mensagem, 'utf-8')#transforma a mensagem(string utf-8 para bytes)
@@ -44,6 +45,7 @@ def descriptografiaHash(pubKey,mensagem,assinatura):
 
 privateKey = ""
 publicKey = ""
+publicKeyReal = ""
 assignatureGenerate = ""
 message = ""
 
@@ -69,7 +71,7 @@ while 1 == 1:
 		if publicKey == "":
 			print(" - Ainda não foi gerado nenhuma chave pública, utilize a opção 2 para iniciar a criação de uma")
 		else:
-			print(" - " + publicKey)
+			print(" - Chave Pública: " + publicKey)
 
 		if assignatureGenerate == "":
 			print("Ainda não foi gerado uma assinatura da mensagem, utilize a opção 2 para iniciar a criação de uma")
@@ -82,13 +84,13 @@ while 1 == 1:
 			print(" - Message: " + message)
 	elif opt == 2:
 		msg = input("Digite a mensagem que deseja usar para a assinar: ")
-		privateKey, publicKey, message, assignatureGenerate = key(msg)
+		privateKey, publicKey, publicKeyReal, message, assignatureGenerate = key(msg)
 	elif opt == 3:
 		if assignatureGenerate == "":
 			print("Ainda não foi gerado uma assinatura da mensagem, utilize a opção 2 para iniciar a criação de uma")
 		else:
 			ass_ = binascii.hexlify(assignatureGenerate).decode('utf-8')
-			descriptografiaHash(publicKey, message, ass_)
+			descriptografiaHash(publicKeyReal, message, ass_)
 	elif opt == 0:
 		print("Tchau\n")
 		break
