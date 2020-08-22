@@ -31,7 +31,10 @@ def key(mensagem):#Gera a chave pública + chave privada + assinatura digital
     print(f"Public key:  (n={hex(keyPair.n)}, e={hex(keyPair.e)})\n")
     print(f"Private key: (n={hex(keyPair.n)}, d={hex(keyPair.d)})\n")
     pubKey = keyPair.publickey()#Geração da chave pública
-    print(pubKey)
+    f = open('mykey.pem','wb')
+    f.write(pubKey.exportKey(format='PEM'))
+    f.close()
+    print('Chave Pública:',repr(pubKey.exportKey().decode("utf-8")).replace('-----BEGIN PUBLIC KEY-----','').replace('-----END PUBLIC KEY-----',''))
     criptografiaHash(keyPair,mensagem)
     
    
@@ -45,8 +48,13 @@ def criptografiaHash(keyPair,mensagem):#Gera o hash da assinatura digital
     return signature #retorna a assinatura digital em binascii
 
 def descriptografiaHash(pubKey,mensagem,assinatura):
+    if len(mensagem)==0:#mensagem não foi selecionada
+        return
+    mensagem=mensagem[0]
+    pubKey = '-----BEGIN PUBLIC KEY-----'+pubKey+'-----END PUBLIC KEY-----'
+    pubKey = RSA.importKey(pubKey.replace('\\n','\n'))
     assinatura = binascii.unhexlify(assinatura)#transforma de hexadecimal para binascii
-    #print(assinatura)
+    print(assinatura)
     mensagem = bytes(mensagem, 'utf-8')#transforma a mensagem(string utf-8 para bytes)
     hash_ = SHA256.new(mensagem)
     verifier = PKCS115_SigScheme(pubKey)
@@ -76,14 +84,14 @@ def descriptografia():#TELA 2
     botaoArquivo = Button(window, text="Selecionar Arquivo",cursor="hand2",relief=RIDGE,command = lambda : arquivo(msg))
     botaoArquivo.pack()
     pubKey = Label(frame, text='pubKey:',font='arial 12 bold')
-    pubKey.grid(row = 1,column = 0)
+    pubKey.grid(row = 0,column = 0)
     entrada = Entry(frame, font="arial 15 bold")
-    entrada.grid(row=1,column=1)
+    entrada.grid(row=0,column=1)
     assinatura = Label(frame, text='Assinatura:',font='arial 12 bold')
-    assinatura.grid(row = 2,column = 0)
+    assinatura.grid(row = 1,column = 0)
     entrada2 = Entry(frame, font="arial 15 bold")
-    entrada2.grid(row=2,column=1)
-    botaoEnviar = ttk.Button(window, text="Enviar",command = lambda: descriptografiaHash(entrada.get(),msg[0],entrada2.get()))
+    entrada2.grid(row=1,column=1)
+    botaoEnviar = ttk.Button(window, text="Enviar",command = lambda: descriptografiaHash(entrada.get(),msg,entrada2.get()))
     botaoEnviar.pack()
 
 def all_children (window) :
