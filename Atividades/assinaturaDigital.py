@@ -59,16 +59,24 @@ def descriptografiaHash(pubKey,mensagem,assinatura):
         return
     mensagem=mensagem[0]
     pubKey = '-----BEGIN PUBLIC KEY-----'+pubKey+'-----END PUBLIC KEY-----'
-    pubKey = RSA.importKey(pubKey.replace('\\n','\n'))
-    assinatura = binascii.unhexlify(assinatura)#transforma de hexadecimal para binascii
-    mensagem = bytes(mensagem, 'utf-8')#transforma a mensagem(string utf-8 para bytes)
-    hash_ = SHA256.new(mensagem)
-    verifier = PKCS115_SigScheme(pubKey)
+    try:
+        pubKey = RSA.importKey(pubKey.replace('\\n','\n'))
+        assinatura = binascii.unhexlify(assinatura)#transforma de hexadecimal para binascii
+        mensagem = bytes(mensagem, 'utf-8')#transforma a mensagem(string utf-8 para bytes)
+        hash_ = SHA256.new(mensagem)
+        verifier = PKCS115_SigScheme(pubKey)
+    except:
+        mensagemDeValidacao["text"] = 'Assinatura Digital é inválida.'
+        print("Assinatura Digital é inválida.")
+        return
     try:
         verifier.verify(hash_, assinatura)
+        mensagemDeValidacao["text"] = 'Assinatura Digital é válida.'
         print("Assinatura Digital é válida.")
     except:
+        mensagemDeValidacao["text"] = 'Assinatura Digital é inválida.'
         print("Assinatura Digital é inválida.")
+    
 
 def criptografia(): #TELA 1 
     limpaTela()
@@ -97,6 +105,9 @@ def descriptografia(): #TELA 2
     assinatura.grid(row = 1,column = 0)
     entrada2 = Entry(frame, font="arial 15 bold")
     entrada2.grid(row=1,column=1)
+    global mensagemDeValidacao
+    mensagemDeValidacao = Label(window, text="TI fora da caixa", font="impact 20 bold")
+    mensagemDeValidacao.pack()
     botaoEnviar = ttk.Button(window, text="Enviar",command = lambda: descriptografiaHash(entrada.get(),msg,entrada2.get()))
     botaoEnviar.pack()
     
