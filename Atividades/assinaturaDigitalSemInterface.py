@@ -1,53 +1,94 @@
 from Crypto.Hash import SHA256 #Gerar Hash
 from Crypto import Random #Números aleatórios para o par de chaves
 from Crypto.PublicKey import RSA #Geração do par de chaves
+from base64 import b64decode
 from Crypto.Signature.pkcs1_15 import PKCS115_SigScheme
 import binascii
 import io #leitura de arquivo txt
 from os import path
+import os
 
-def key(mensagem):#Gera a chave pública + chave privada + assinatura digital
-    random_seed = Random.new().read #Criou-se uma semente randômica para gerar o par chave privada/pública.
-    keyPair = RSA.generate(1024,random_seed)#criou-se o par de chave privada/pública.
-    # print("\n")
-    # print(f"Public key:  (n={hex(keyPair.n)}, e={hex(keyPair.e)})\n")
-    # print(f"Private key: (n={hex(keyPair.n)}, d={hex(keyPair.d)})\n")
-    pubKey = keyPair.publickey()#Geração da chave pública
-    
-    privateKey = "Private key: " + f"(n={hex(keyPair.n)}, d={hex(keyPair.d)})"
-    #publicKey = "Public key: " + f"(n={hex(keyPair.n)}, e={hex(keyPair.e)})"
-    publicKey = repr(pubKey.exportKey().decode("utf-8")).replace('-----BEGIN PUBLIC KEY-----','').replace('-----END PUBLIC KEY-----','')
-    publickeyReal = keyPair.publickey()
-    message = mensagem
-    # print(pubKey)
-    return privateKey, publicKey, publickeyReal, message, criptografiaHash(keyPair,mensagem)
-    
-def criptografiaHash(keyPair,mensagem):#Gera o hash da assinatura digital
-    mensagem = bytes(mensagem, 'utf-8')#transforma a mensagem(string utf-8 para bytes)
-    hash_ = SHA256.new(mensagem)#cria o hash da mensagem
-    signer = PKCS115_SigScheme(keyPair)#instancia o objeto para a assinatura
-    signature = signer.sign(hash_)#faz assinatura digital em binascii
-    # print("\n")
-    # print("Assinatura Digital:",binascii.hexlify(signature))#assinatura em hexadecimal
-    return signature
-
-def descriptografiaHash(pubKey,mensagem,assinatura):
-    assinatura = binascii.unhexlify(assinatura)#transforma de hexadecimal para binascii
-    #print(assinatura)
-    mensagem = bytes(mensagem, 'utf-8')#transforma a mensagem(string utf-8 para bytes)
-    hash_ = SHA256.new(mensagem)
-    verifier = PKCS115_SigScheme(pubKey)
-    try:
-    	verifier.verify(hash_, assinatura)
-    	print("Assinatura Digital é válida.")
-    except:
-    	print("Assinatura Digital é inválida.")
-
-privateKey = ""
-publicKey = ""
-publicKeyReal = ""
-assignatureGenerate = ""
 message = ""
+
+'''
+/**
+ * Método responsável por gerar chaves pública e privada.
+ * Gera dois arquivos binários contendo respectivamente a chave privada
+ * e pública.
+
+ * Retorna caminho até os arquivos gerados.
+ */
+'''
+def key():
+	try:
+		key = RSA.generate(2048)
+		private_key = key.export_key()
+		file_out = open("private.pem", "wb")
+		file_out.write(private_key)
+		file_out.close()
+
+		public_key = key.publickey().export_key()
+		file_out = open("public.pem", "wb")
+		file_out.write(public_key)
+		file_out.close()
+
+		return os.path.dirname(os.path.abspath(__file__))+'/private.pem', os.path.dirname(os.path.abspath(__file__))+'/public.pem'
+	except Exception as e:
+		print('Falha na execução da geração das chaves : ' + str(e))
+
+'''
+/**
+ * Função responsável por assinar mensagem.
+ * Recebe uma mensagem clara e o caminho para a chave privada.
+ * Retorna a assinatura da mensagem.
+ */
+'''
+def digitalSignature(message, privateKey):
+	encoded_key = open(privateKey, "rb").read()
+	try:
+		key = RSA.import_key(encoded_key)
+
+		# print(key.publickey().export_key())
+		mensagem = bytes(message, 'utf-8')# transforma a mensagem(string utf-8 para bytes)
+		hash_ = SHA256.new(mensagem)# cria o hash da mensagem
+		signer = PKCS115_SigScheme(key)# instancia o objeto para a assinatura
+		signature = signer.sign(hash_)# faz assinatura digital em binascii
+
+		file_out = open("signature.pem", "wb")
+		file_out.write(binascii.hexlify(signature))
+		file_out.close()
+
+		return os.path.dirname(os.path.abspath(__file__))+'/signature.pem'
+	except Exception as e:
+		print('Falha na execução da assinatura : ' + str(e))
+
+'''
+/**
+ * Função responsável por verificar assinatura digital.
+ * Recebe como parametros a mensagem clara, o caminho para a chave pública e a assinatura.
+ * Retorna a verificação (é ou não é válida).
+ *
+ */
+'''
+def verifySignature(message, publicKey, signature):
+	encoded_key = open(publicKey, "rb").read()
+	file_signature = open(signature, "rb").read()
+	try:
+		key = RSA.import_key(encoded_key)
+		assinatura = binascii.unhexlify(file_signature.decode('utf-8'))# transforma de hexadecimal para binascii
+		#print(assinatura)
+		mensagem = bytes(message, 'utf-8')# transforma a mensagem(string utf-8 para bytes)
+		hash_ = SHA256.new(mensagem)
+		verifier = PKCS115_SigScheme(key)
+		try:
+			verifier.verify(hash_, assinatura)
+			print("Assinatura Digital é válida.")
+		except:
+			print("Assinatura Digital é inválida.")
+	except Exception as e:
+		print('Falha na execução da verificação da assinatura : ' + str(e))
+
+
 
 while 1 == 1:
 
@@ -55,42 +96,30 @@ while 1 == 1:
 	print("\nAtividade 1 - sistema de assinatura digital")
 	print("\nUtilize os números no menu para acessar a função desejada")
 	print("\n")
-	print("1 - Mostrar chaves (privada e pública)\n")
-	print("2 - Criptografar mensagem\n")
-	print("3 - Descriptografar (verificar) assinatura\n")
+	print("1 - Gerar chaves (privada e pública)\n")
+	print("2 - Assinar mensagem\n")
+	print("3 - Verificar assinatura\n")
 	print("0 - Sair")
 	
 	opt = int(input("Qual opção deseja executar? "))
 
 	if opt == 1:
-		if privateKey == "":
-			print("\n - Ainda não foi gerado nenhuma chave privada, utilize a opção 2 para iniciar a criação de uma")
-		else:
-			print(" - " + privateKey)
-
-		if publicKey == "":
-			print(" - Ainda não foi gerado nenhuma chave pública, utilize a opção 2 para iniciar a criação de uma")
-		else:
-			print(" - Chave Pública: " + publicKey)
-
-		if assignatureGenerate == "":
-			print("Ainda não foi gerado uma assinatura da mensagem, utilize a opção 2 para iniciar a criação de uma")
-		else:
-			print(" - Assignature: " , binascii.hexlify(assignatureGenerate).decode('utf-8'))
-
-		if message == "":
-			print(" - Ainda não foi inserido uma mensagem para assinatura, utiliza a opção 2 para iniciar a criação de uma\n")
-		else:
-			print(" - Message: " + message)
+		pathPrivate, pathPublic = key()
+		print("------------------------------------------------------------")
+		print('* caminho da chave privada: \n\n' + pathPrivate + "\n")
+		print('* caminho da chave pública: \n\n' + pathPublic + "\n")
+		print("------------------------------------------------------------")
 	elif opt == 2:
-		msg = input("Digite a mensagem que deseja usar para a assinar: ")
-		privateKey, publicKey, publicKeyReal, message, assignatureGenerate = key(msg)
+		message = input("Digite a mensagem que deseja assinar: ")
+		pathPrivate = input("Digite o caminho do arquivo da chave privada: ")
+		print("\n------------------------------------------------------------\n")
+		print('* caminho da assinatura digital: \n\n' + digitalSignature(message, pathPrivate) + "\n")
+		print("------------------------------------------------------------\n")
 	elif opt == 3:
-		if assignatureGenerate == "":
-			print("Ainda não foi gerado uma assinatura da mensagem, utilize a opção 2 para iniciar a criação de uma")
-		else:
-			ass_ = binascii.hexlify(assignatureGenerate).decode('utf-8')
-			descriptografiaHash(publicKeyReal, message, ass_)
+		msg_ = input("Digite a mensagem original utilizada na assinatura: ")
+		pathPublic = input("Digite o caminho do arquivo da chave pública: ")
+		pathSignature = input("Digite o caminho do arquivo da assinatura: ")
+		verifySignature(msg_, pathPublic, pathSignature)
 	elif opt == 0:
 		print("Tchau\n")
 		break
