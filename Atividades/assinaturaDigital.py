@@ -3,7 +3,7 @@ import tkinter.ttk as ttk #Interface Gráfica
 from tkinter import filedialog #Interface Gráfica
 from tkinter import messagebox #Interface Gráfica
 from Crypto.Hash import SHA256 #Gerar Hash
-from Crypto import Random #Números aleatórios para o par de chaves
+from tkinter import scrolledtext #Scroll para caixa de saída private e public key
 from Crypto.PublicKey import RSA #Geração do par de chaves
 from Crypto.Signature.pkcs1_15 import PKCS115_SigScheme
 import binascii
@@ -14,7 +14,7 @@ from PIL import ImageTk #carregar imagem
 import PIL.Image
 
 
-def arquivo(msg):
+def arquivo(msg):#abrir arquivo
     msg.clear()
     formats= [("Arquivo","*.txt")]
     arquivo = filedialog.askopenfilename(filetypes=formats,title='Selecione o arquivo para criptografia')
@@ -29,34 +29,66 @@ def arquivo(msg):
     messagebox.showinfo('Arquivo','Aquivo selecionado: '+str(path.basename(arquivo)))
     msg.append(texto)
 
-def key(mensagem):#Gera a chave pública + chave privada + assinatura digital
-    random_seed = Random.new().read #Criou-se uma semente randômica para gerar o par chave privada/pública.
-    keyPair = RSA.generate(1024,random_seed)#criou-se o par de chave privada/pública.
-    print(f"Public key:  (n={hex(keyPair.n)}, e={hex(keyPair.e)})\n")
-    print(f"Private key: (n={hex(keyPair.n)}, d={hex(keyPair.d)})\n")
+def gerarChaves():#Gerador de chaves pública e privada
+    limpaTela(FrameScroll)#limpa o frame caso tenha uma chave pública que já foi gerada
+
+    ##BEGIN FRAME ---- PUBLIC KEY --------
+    publicKeyGenerate = Label(FrameScroll, text='Chave Pública:',font='arial 12 bold')
+    publicKeyGenerate.pack()
+    saida2 = scrolledtext.ScrolledText(FrameScroll,font="arial 15 normal",width=30,height=5,undo=True,state='normal')
+    saida2.pack()
+    ##END FRAME ---- PUBLIC KEY ---------
+    
+    keyPair = RSA.generate(1024)#criou-se o par de chave privada/pública.
     pubKey = keyPair.publickey()#Geração da chave pública
-    f = open('mykey.pem','wb')
+    priKey = keyPair.exportKey()#Geração da chave privada
+    f = open('publickey.pem','wb')#salva chave pública em arquivo pem no diretório corrente
     f.write(pubKey.exportKey(format='PEM'))
     f.close()
-    print('Chave Pública:',repr(pubKey.exportKey().decode("utf-8")).replace('-----BEGIN PUBLIC KEY-----','').replace('-----END PUBLIC KEY-----',''))
-    criptografiaHash(keyPair,mensagem)
+    f = open('privatekey.pem','wb')#salva chave privada em arquivo pem no diretório corrente
+    f.write(keyPair.exportKey(format='PEM'))
+    f.close()
+    entrada.delete(0,END)#Apaga se tiver alguma chave privada criada
+    saida2.delete('1.0',END)#Apaga se tiver alguma chave pública criada
+    entrada.insert(END,repr(keyPair.exportKey().decode("utf-8")).replace('-----BEGIN RSA PRIVATE KEY-----','').replace('-----END RSA PRIVATE KEY-----','').replace("'", ""))
+    saida2.insert(END,repr(pubKey.exportKey().decode("utf-8")).replace('-----BEGIN PUBLIC KEY-----','').replace('-----END PUBLIC KEY-----','').replace("'", ""))
+    pub.clear()
+    pub.append(repr(pubKey.exportKey().decode("utf-8")).replace('-----BEGIN PUBLIC KEY-----','').replace('-----END PUBLIC KEY-----','').replace("'", ""))
     
    
-def criptografiaHash(keyPair,mensagem):#Gera o hash da assinatura digital
-    if len(mensagem)==0:
-        return
+def criptografiaHash(prikey,mensagem):#Gera o texto com a assinatura Digital // Recebe como parametros chave privada e texto em claro (arquivo.txt)
+    if len(mensagem)==0:#Verifica se algum arquivo foi selecionado
+        return messagebox.showwarning('Erro - Arquivo', 'Arquivo não foi selecionado!')
+    prikey = '-----BEGIN PUBLIC KEY-----'+prikey+'-----END PUBLIC KEY-----'
+    try:
+        prikey = RSA.importKey(prikey.replace('\\n','\n'))
+    except:
+        return messagebox.showinfo('Inválida','Chave Inválida!')
     mensagem = mensagem[0]
     mensagem = bytes(mensagem, 'utf-8')#transforma a mensagem(string utf-8 para bytes)
     hash_ = SHA256.new(mensagem)#cria o hash da mensagem
-    signer = PKCS115_SigScheme(keyPair)#instancia o objeto para a assinatura
-    signature = signer.sign(hash_)#faz assinatura digital em binascii
-    print()
-    print("Assinatura Digital:",binascii.hexlify(signature).decode("utf-8"))#assinatura em hexadecimal
+    signer = PKCS115_SigScheme(prikey)#instancia o objeto para a assinatura
+    signature = signer.sign(hash_)#faz assinatura digital em binasciis
+
+    f = open('digitalSignature.pem','wb')#salva chave privada em arquivo pem no diretório corrente
+    f.write(binascii.hexlify(signature))
+    f.close()
+    ass.clear()
+    ass.append(binascii.hexlify(signature))
+    ##BEGIN FRAME ---- DIGITAL SIGNATURE --------
+    digitalSignature = Label(FrameScroll, text='Assinatura Digital:',font='arial 12 bold')
+    digitalSignature.pack()
+    saida3 = scrolledtext.ScrolledText(FrameScroll,font="arial 15 normal",width=30,height=5,undo=True,state='normal')
+    saida3.pack()
+    saida3.insert(END,binascii.hexlify(signature))
+    ##END FRAME ---- DIGITAL SIGNATURE ---------
+
+    messagebox.showinfo('OK','Texto assinado com sucesso!')
     return signature #retorna a assinatura digital em binascii
 
-def descriptografiaHash(pubKey,mensagem,assinatura):
+def descriptografiaHash(pubKey,mensagem,assinatura):#Função que retorna verdadeiro ou falso dado a chave pública, mensagem e assinatura
     if len(mensagem)==0:#mensagem não foi selecionada
-        return
+        return messagebox.showwarning('Erro - Arquivo', 'Arquivo não foi selecionado!')
     mensagem=mensagem[0]
     pubKey = '-----BEGIN PUBLIC KEY-----'+pubKey+'-----END PUBLIC KEY-----'
     try:
@@ -66,50 +98,78 @@ def descriptografiaHash(pubKey,mensagem,assinatura):
         hash_ = SHA256.new(mensagem)
         verifier = PKCS115_SigScheme(pubKey)
     except:
-        mensagemDeValidacao["text"] = 'Assinatura Digital é inválida.'
-        print("Assinatura Digital é inválida.")
+        mensagemDeValidacao["text"] = 'Falso'
         return
     try:
         verifier.verify(hash_, assinatura)
-        mensagemDeValidacao["text"] = 'Assinatura Digital é válida.'
-        print("Assinatura Digital é válida.")
+        mensagemDeValidacao["text"] = 'Verdadeiro'
     except:
-        mensagemDeValidacao["text"] = 'Assinatura Digital é inválida.'
-        print("Assinatura Digital é inválida.")
+        mensagemDeValidacao["text"] = 'Falso'
     
 
-def criptografia(): #TELA 1 
+def criptografia(): #TELA - Assinar Arquivo 
     limpaTela()
-    msg=[]
-    texto = Label(window, text='Criptografia de texto',font='arial 12 normal')
+    global saida,entrada,FrameScroll,pub,ass
+    msg = []
+    ass = []
+    pub = []
+    texto = Label(window, text='Criptografia de Arquivo',font='arial 12 normal')
     texto.pack()
+    frame = Frame(window)
+    frame.pack()
+    privateKey = Label(frame, text='Chave Privada:',font='arial 12 bold')
+    privateKey.grid(row = 0,column = 0)
+    entrada = Entry(frame, font="arial 15 normal")
+    entrada.grid(row=0,column=1)
+    gerar = ttk.Button(frame, text="Gerar Chaves",command = gerarChaves)
+    gerar.grid(row=0,column=2,padx=20)
     botaoArquivo = Button(window, text="Selecionar Arquivo",cursor="hand2",relief=RIDGE,command = lambda : arquivo(msg))
-    botaoArquivo.pack()
-    botaoEnviar = ttk.Button(window, text="Enviar",command = lambda : key(msg))
-    botaoEnviar.pack()
+    botaoArquivo.pack(pady=10)
+    botaoEnviar = ttk.Button(window, text="Enviar",command = lambda : criptografiaHash(entrada.get(),msg))
+    botaoEnviar.pack(pady=(0,10))
+    FrameScroll = Frame(window)
+    FrameScroll.pack()
+
+def gerador(k,entrada_): #função auxiliar para o preenchimento automático na Verificação de Assinatura
+    if k=='a':#assinatura
+        try:
+            entrada_.delete(0,END)#Apaga se tiver alguma assinatura digital criada
+            return entrada_.insert(END,ass[0])
+        except:
+            messagebox.showinfo('Assinatura','Assinatura não foi Gerada!')
+    else:
+        try:
+            entrada_.delete(0,END)#Apaga se tiver alguma chave pública criada
+            return entrada_.insert(END,pub[0])
+        except:
+            messagebox.showinfo('Chave Pública','Chave Pública não foi Gerada!')
     
-def descriptografia(): #TELA 2
+def descriptografia(): #TELA - Verificar Arquivo
     limpaTela()
-    msg=[]
-    texto = Label(window, text='Descriptografia de texto',font='arial 12 normal')
+    global mensagemDeValidacao
+    msg = []
+    texto = Label(window, text='Verificação de Assinatura',font='arial 12 normal')
     texto.pack()
     frame = Frame(window)
     frame.pack()
     botaoArquivo = Button(window, text="Selecionar Arquivo",cursor="hand2",relief=RIDGE,command = lambda : arquivo(msg))
-    botaoArquivo.pack()
-    pubKey = Label(frame, text='pubKey:',font='arial 12 bold')
-    pubKey.grid(row = 0,column = 0)
-    entrada = Entry(frame, font="arial 15 bold")
-    entrada.grid(row=0,column=1)
+    botaoArquivo.pack(pady=10)
+    pubKey = Label(frame, text='Chave Pública:',font='arial 12 bold')
+    pubKey.grid(row = 0,column = 0,pady=5)
+    entrada_pk = Entry(frame, font="arial 15 bold")
+    entrada_pk.grid(row=0,column=1,pady=5)
+    preencher = ttk.Button(frame, text="Preencher com Chave Gerada",command = lambda : gerador('p',entrada_pk),width = 30)
+    preencher.grid(row=0,column=2,padx=20,pady=5)
     assinatura = Label(frame, text='Assinatura:',font='arial 12 bold')
     assinatura.grid(row = 1,column = 0)
-    entrada2 = Entry(frame, font="arial 15 bold")
-    entrada2.grid(row=1,column=1)
-    global mensagemDeValidacao
-    mensagemDeValidacao = Label(window, text="TI fora da caixa", font="impact 20 bold")
-    mensagemDeValidacao.pack()
-    botaoEnviar = ttk.Button(window, text="Enviar",command = lambda: descriptografiaHash(entrada.get(),msg,entrada2.get()))
+    entrada_ad = Entry(frame, font="arial 15 bold")
+    entrada_ad.grid(row=1,column=1)
+    preencher2 = ttk.Button(frame, text="Preencher com Assinatura Gerada",command = lambda : gerador('a',entrada_ad),width = 30)
+    preencher2.grid(row=1,column=2,padx=20)
+    botaoEnviar = ttk.Button(window, text="Enviar",command = lambda: descriptografiaHash(entrada_pk.get(),msg,entrada_ad.get()))
     botaoEnviar.pack()
+    mensagemDeValidacao = Label(window, text="", font="impact 20 bold")
+    mensagemDeValidacao.pack()
     
 def home():
     limpaTela()
@@ -127,8 +187,10 @@ def all_children (window) :
             _list.extend(item.winfo_children())
     return _list
 
-def limpaTela():
-    widget_list = all_children(window)
+def limpaTela(tela = ''):
+    if tela=='':
+        tela = window
+    widget_list = all_children(tela)
     for item in widget_list:
         item.pack_forget()
     
@@ -136,11 +198,11 @@ def limpaTela():
 window = Tk()
 menu = Menu(window)
 window.config(menu=menu)
-menu.add_cascade(label='home',command=home)
-menu.add_cascade(label='Criptografia',command=criptografia)
-menu.add_cascade(label='Descriptografia',command=descriptografia)
+menu.add_cascade(label='Home',command=home)
+menu.add_cascade(label='Assinar Arquivo',command=criptografia)
+menu.add_cascade(label='Verificar Arquivo',command=descriptografia)
 home()
 window.title('Assinatura Digital - Filipe / João Lucas / Rodrigo')
-window.geometry('600x400+200+100')#altura x largura + eixo_x + eixo_y
+window.geometry('700x500+200+100')#altura x largura + eixo_x + eixo_y
 window.mainloop()
 ################################
