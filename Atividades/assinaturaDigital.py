@@ -31,7 +31,8 @@ def arquivo(msg):#abrir arquivo
 
 def gerarChaves():#Gerador de chaves pública e privada
     limpaTela(FrameScroll)#limpa o frame caso tenha uma chave pública que já foi gerada
-
+    limpaTela(FrameScroll2)#limpa o frame caso tenha uma assinatura digital que já foi gerada
+    
     ##BEGIN FRAME ---- PUBLIC KEY --------
     publicKeyGenerate = Label(FrameScroll, text='Chave Pública:',font='arial 12 bold')
     publicKeyGenerate.pack()
