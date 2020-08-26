@@ -75,10 +75,13 @@ def criptografiaHash(prikey,mensagem):#Gera o texto com a assinatura Digital // 
     f.close()
     ass.clear()
     ass.append(binascii.hexlify(signature))
+
+
+    limpaTela(FrameScroll2)#limpa o frame caso tenha uma assinatura digital que já foi gerada
     ##BEGIN FRAME ---- DIGITAL SIGNATURE --------
-    digitalSignature = Label(FrameScroll, text='Assinatura Digital:',font='arial 12 bold')
+    digitalSignature = Label(FrameScroll2, text='Assinatura Digital:',font='arial 12 bold')
     digitalSignature.pack()
-    saida3 = scrolledtext.ScrolledText(FrameScroll,font="arial 15 normal",width=30,height=5,undo=True,state='normal')
+    saida3 = scrolledtext.ScrolledText(FrameScroll2,font="arial 15 normal",width=30,height=5,undo=True,state='normal')
     saida3.pack()
     saida3.insert(END,binascii.hexlify(signature))
     ##END FRAME ---- DIGITAL SIGNATURE ---------
@@ -109,7 +112,7 @@ def descriptografiaHash(pubKey,mensagem,assinatura):#Função que retorna verdad
 
 def criptografia(): #TELA - Assinar Arquivo 
     limpaTela()
-    global saida,entrada,FrameScroll,pub,ass
+    global saida,entrada,FrameScroll,FrameScroll2,pub,ass
     msg = []
     ass = []
     pub = []
@@ -129,6 +132,8 @@ def criptografia(): #TELA - Assinar Arquivo
     botaoEnviar.pack(pady=(0,10))
     FrameScroll = Frame(window)
     FrameScroll.pack()
+    FrameScroll2 = Frame(window)
+    FrameScroll2.pack()
 
 def gerador(k,entrada_): #função auxiliar para o preenchimento automático na Verificação de Assinatura
     if k=='a':#assinatura
